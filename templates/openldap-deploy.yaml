@@ -24,9 +24,19 @@ spec:
         - name: schema-ldif
           configMap:
             name: openldap-schema-ldif
+      {{- if .Values.build.enabled }}
+      serviceAccount: build-reader
+      initContainers:
+        - name: wait-for-build
+          image: quay.io/openshift/origin-cli:4.16
+          command:
+            - sh
+            - -c
+            - oc wait --for=jsonpath='{.status.phase}'=Complete build -l buildconfig={{ .Values.build.image.repository }} --timeout=90s
+      {{- end }}
       containers:
         - name: openldap
-          image: "{{ .Values.openshift.registry }}/{{ .Release.Namespace }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.build.image.registry }}/{{ .Release.Namespace }}/{{ .Values.build.image.repository }}:{{ .Values.build.image.tag }}"
           env:
             - name: LDAP_PORT_NUMBER
               value: "1389"
